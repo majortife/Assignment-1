@@ -1,15 +1,15 @@
-# Assignment 1 — Linux, Bash & Networking
+# Assignment 1 - Linux, Bash & Networking
 
-A Linux diagnostic toolkit written in Bash. All system information and measurements are obtained at runtime.
+This project contains three Bash scripts for checking Linux system information, disk usage, and network connectivity.
 
 ## Requirements
 
-- Linux (Ubuntu under WSL is supported)
-- Bash, coreutils, `df`, `awk`, `getent`, `hostname`, `uptime`, `free`
-- `ping` (recommended; ICMP can be blocked by the network)
-- Git for submission
+- Linux (Ubuntu or WSL)
+- Bash
+- Git
+- Basic Linux utilities such as `df`, `awk`, `getent`, `free`, and `ping`
 
-On Ubuntu, install common utilities if needed:
+Install any missing utilities on Ubuntu using:
 
 ```bash
 sudo apt update
@@ -18,77 +18,138 @@ sudo apt install -y git iputils-ping netcat-openbsd
 
 ## Setup
 
+Clone the repository and move into the project directory.
+
+Give the scripts executable permissions:
+
 ```bash
 chmod +x system-info.sh disk-check.sh network-check.sh grade.sh
+```
+
+## Running the Scripts
+
+### 1. System Information
+
+```bash
 ./system-info.sh
+```
+
+Displays basic system details, including:
+
+- Hostname and current user
+- Date and time
+- Operating system and kernel version
+- System uptime
+- CPU and memory information
+- Current working directory
+
+### 2. Disk Usage Check
+
+```bash
 ./disk-check.sh
-./network-check.sh localhost
 ```
 
-## Usage
+Checks disk usage using a default threshold of 80%.
 
-### `system-info.sh`
-
-```bash
-./system-info.sh
-```
-
-Shows hostname, user, date/time, operating system, kernel version, uptime, CPU, memory and the current working directory.
-
-### `disk-check.sh`
+You can also specify a threshold and directory:
 
 ```bash
-./disk-check.sh             # defaults: threshold=80, path=/
 ./disk-check.sh 90
 ./disk-check.sh 75 /home
 ```
 
-Shows the usage percentage of the filesystem containing the selected path. Returns `0` if usage is below the threshold, `1` if usage meets/exceeds the threshold or cannot be read, and `2` for invalid input. The threshold must be an integer from 1 through 100.
+The threshold must be between 1 and 100.
 
-### `network-check.sh`
+Exit codes:
+
+- `0` - Disk usage is below the threshold
+- `1` - Disk usage has reached the threshold or the check failed
+- `2` - Invalid input
+
+### 3. Network Check
 
 ```bash
 ./network-check.sh localhost
+```
+
+Checks whether a hostname can be resolved and attempts to ping it.
+
+You can also provide a TCP port:
+
+```bash
 ./network-check.sh localhost 22
 ./network-check.sh example.com 443
 ```
 
-Resolves the hostname using `getent`, attempts an ICMP ping, and optionally checks a TCP port. TCP port values must be integers from 1 through 65535. Exit codes: `0` on successful resolution and (if requested) TCP connectivity, `1` on operational failure, and `2` for invalid input. ICMP may be blocked even when TCP connectivity works; a failed ping alone does not fail the check.
+The script uses `getent` for hostname resolution and checks TCP connectivity when a port is provided.
+
+Valid port numbers range from 1 to 65535.
+
+Exit codes:
+
+- `0` - Hostname resolved and the requested TCP check passed
+- `1` - Network check failed
+- `2` - Invalid input
+
+A failed ping does not necessarily mean the host is unreachable, since some networks block ICMP requests.
 
 ## Logging
 
-Each script appends timestamped operation descriptions to `logs/operations.log`. The log directory is created automatically. Generated `.log` files are ignored by Git.
+The scripts record their operations in:
 
-## Local testing
+```text
+logs/operations.log
+```
+
+Each entry contains a timestamp and a short description of the operation performed.
+
+The log directory is created automatically if it does not exist.
+
+## Testing
+
+Run the local grading script:
 
 ```bash
 ./grade.sh
-bash -n system-info.sh disk-check.sh network-check.sh
-./disk-check.sh 0; echo "Exit code: $?"       # 2
-./disk-check.sh 101; echo "Exit code: $?"     # 2
-./network-check.sh; echo "Exit code: $?"     # 2
-./network-check.sh localhost 0; echo "Exit code: $?" # 2
-./network-check.sh localhost 65536; echo "Exit code: $?" # 2
 ```
 
-`grade.sh` is a local self-check based on the assignment's published grading expectations, not a substitute for the instructor's original grading script.
-
-## Git workflow
-
-Run the included `setup-git.sh` once in this directory to initialize a repository with at least five meaningful commits, a feature branch and a merge to `main`. Then create a **separate** empty GitHub repository and add its URL as `origin`:
+Check the Bash scripts for syntax errors:
 
 ```bash
-./setup-git.sh
-git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPO.git
-git push -u origin main
+bash -n system-info.sh disk-check.sh network-check.sh
 ```
 
-If your default Git branch is `master`, the setup script renames it to `main`. Set `git config --global user.name` and `git config --global user.email` before running it if Git identity is not configured.
+You can also test invalid inputs:
+
+```bash
+./disk-check.sh 0
+./disk-check.sh 101
+./network-check.sh
+./network-check.sh localhost 0
+./network-check.sh localhost 65536
+```
+
+Invalid inputs should return exit code `2`.
+
+The included `grade.sh` is a local checker based on the assignment requirements.
+
+## Git
+
+Git was used to track changes during development.
+
+The project includes a feature branch for the network diagnostic script, which was merged into the main branch.
+
+Commit history can be viewed using:
+
+```bash
+git log --oneline --graph --all
+```
 
 ## Assumptions
 
-- Disk usage is the percentage reported by `df -P` for the filesystem containing the requested path.
-- Threshold equality is considered a warning (`usage >= threshold`).
-- A TCP connection attempt has a three-second timeout.
-- WSL environments may restrict ICMP echo requests; DNS resolution and requested TCP connectivity are evaluated separately.
-- The scripts do not require machine-specific values or credentials.
+- Disk usage is checked using `df`.
+- The default disk threshold is 80%.
+- Disk usage equal to the threshold is treated as a warning.
+- TCP connection attempts use a three-second timeout.
+- Some network environments may block ping requests.
+- System information is collected from the environment where the scripts are executed.
